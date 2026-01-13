@@ -1,0 +1,7 @@
+ipykernel
+matplotlib
+networkx
+pandas
+pydantic
+pyarrow
+pygraphviz
