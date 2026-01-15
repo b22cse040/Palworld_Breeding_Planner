@@ -1,0 +1,208 @@
+<!doctype html>
+<html>
+<head>
+  <title>Pal Breeding Planner</title>
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont;
+      margin: 40px;
+      background: #fafafa;
+      color: #222;
+    }
+
+    h2 { margin-bottom: 10px; }
+    h3 { margin-top: 30px; }
+
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      background: #f4f4f4;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #eaeaea;
+    }
+
+    select, input {
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    #suggestions {
+      border: 1px solid #ccc;
+      background: white;
+      max-width: 220px;
+      position: absolute;
+      z-index: 10;
+    }
+
+    #suggestions div {
+      padding: 6px;
+      cursor: pointer;
+    }
+
+    #suggestions div:hover {
+      background: #eee;
+    }
+
+    ul {
+      margin: 6px 0;
+      padding-left: 18px;
+    }
+
+    .pal-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .pal-row:last-child {
+      border-bottom: none;
+    }
+
+    dialog {
+      border-radius: 8px;
+      padding: 20px;
+      border: none;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    }
+
+    dialog img {
+      max-width: 100%;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>🧬 Pal Breeding Planner</h2>
+
+<div class="card">
+  <form method="post">
+    <div class="row">
+      <label><b>Pals:</b></label>
+      <input id="palInput" placeholder="Type Gor..." autocomplete="off">
+    </div>
+
+    <div id="suggestions"></div>
+
+    <ul id="selected"></ul>
+    <input type="hidden" name="pals" id="palsHidden">
+
+    <br>
+
+    <div class="row">
+      <label>Depth:</label>
+      <select name="depth">
+        {% for d in range(1,6) %}
+          <option value="{{d}}" {% if d==3 %}selected{% endif %}>{{d}}</option>
+        {% endfor %}
+      </select>
+
+      <label>Sort by:</label>
+      <select name="sort_by">
+        {% for a in abilities %}
+          <option value="{{a}}">{{a}}</option>
+        {% endfor %}
+      </select>
+
+      <button type="submit">Run Breeding</button>
+    </div>
+  </form>
+</div>
+
+{% if results %}
+<h3>Results</h3>
+
+{% for depth, items in results.items() %}
+  <div class="card">
+    <h3>Depth {{ depth }}</h3>
+
+    {% for pal, graph, gid in items %}
+      <div class="pal-row">
+        <div>
+          <b>{{ pal.name }}</b>
+          <span style="color:#666">
+            (unique={{ graph.unique_pal_count() }})
+          </span>
+        </div>
+        <button onclick="openDialog('{{ gid }}')">Visualize</button>
+      </div>
+    {% endfor %}
+  </div>
+{% endfor %}
+{% endif %}
+
+<dialog id="dlg">
+  <img id="img">
+  <br><br>
+  <button onclick="dlg.close()">Close</button>
+</dialog>
+
+<script>
+const input = document.getElementById("palInput");
+const sugg = document.getElementById("suggestions");
+const sel = document.getElementById("selected");
+const hidden = document.getElementById("palsHidden");
+
+let selected = [];
+
+input.oninput = async () => {
+  sugg.innerHTML = "";
+  if (!input.value) return;
+
+  const r = await fetch("/autocomplete?q=" + input.value);
+  const data = await r.json();
+
+  data.forEach(n => {
+    const d = document.createElement("div");
+    d.textContent = n;
+    d.onclick = () => {
+      if (!selected.includes(n)) selected.push(n);
+      render();
+      input.value = "";
+      sugg.innerHTML = "";
+    };
+    sugg.appendChild(d);
+  });
+};
+
+function render() {
+  sel.innerHTML = "";
+  selected.forEach(p => {
+    const li = document.createElement("li");
+    li.textContent = p;
+    sel.appendChild(li);
+  });
+  hidden.value = selected.join(",");
+}
+
+function openDialog(id) {
+  document.getElementById("img").src = "/graph/" + id;
+  dlg.showModal();
+}
+</script>
+
+</body>
+</html>
