@@ -31,12 +31,12 @@ def index():
     if request.method == "POST":
         selected = request.form["pals"].split(",")
         depth = int(request.form["depth"])
-        sort_by = request.form["sort_by"]
+        # sort_by = request.form["sort_by"]
 
         pals = [PAL_BY_NAME[p] for p in selected]
 
         graphs = get_breeding_combinations(pals, depth)
-        sorted_results = sort_breeding_results(graphs, sort_by)
+        sorted_results = list(graphs.items())
 
         results = {}
 

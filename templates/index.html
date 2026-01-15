@@ -8,7 +8,11 @@
       font-family: system-ui, -apple-system;
       margin: 40px;
       background: #fafafa;
+      color: #222;
     }
+
+    h2 { margin-bottom: 12px; }
+    h3 { margin-top: 24px; }
 
     .card {
       background: white;
@@ -29,6 +33,7 @@
       padding: 6px 10px;
       border-radius: 6px;
       border: 1px solid #ccc;
+      font-size: 14px;
     }
 
     button {
@@ -40,23 +45,6 @@
       background: #eaeaea;
     }
 
-    /* ---------- Pal chips ---------- */
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
-      background: #eef2ff;
-      border-radius: 20px;
-      margin: 4px 6px 4px 0;
-      font-size: 14px;
-    }
-
-    .chip span {
-      cursor: pointer;
-      font-weight: bold;
-    }
-
     /* ---------- Autocomplete ---------- */
     #suggestions {
       position: absolute;
@@ -64,15 +52,34 @@
       border: 1px solid #ccc;
       max-width: 220px;
       z-index: 10;
+      border-radius: 6px;
+      overflow: hidden;
     }
 
     #suggestions div {
-      padding: 6px;
+      padding: 6px 10px;
       cursor: pointer;
     }
 
     #suggestions div:hover {
       background: #eee;
+    }
+
+    /* ---------- Pal chips ---------- */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: #eef2ff;
+      border-radius: 999px;
+      margin: 4px 6px 4px 0;
+      font-size: 14px;
+    }
+
+    .chip span {
+      cursor: pointer;
+      font-weight: bold;
     }
 
     /* ---------- Results ---------- */
@@ -88,10 +95,21 @@
       border-bottom: none;
     }
 
+    .meta {
+      color: #666;
+      margin-left: 6px;
+    }
+
+    .ability-value {
+      color: #444;
+      margin-left: 10px;
+    }
+
     dialog {
       border-radius: 10px;
       padding: 20px;
       border: none;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
     }
 
     dialog img {
@@ -104,6 +122,7 @@
 
 <h2>🧬 Pal Breeding Planner</h2>
 
+<!-- ================= INPUT CARD ================= -->
 <div class="card">
   <form method="post">
 
@@ -114,9 +133,7 @@
 
     <div id="suggestions"></div>
 
-    <!-- Selected pal chips -->
     <div id="chips"></div>
-
     <input type="hidden" name="pals" id="palsHidden">
 
     <br>
@@ -125,14 +142,7 @@
       <label>Depth:</label>
       <select name="depth">
         {% for d in range(1,6) %}
-          <option value="{{d}}" {% if d==3 %}selected{% endif %}>{{d}}</option>
-        {% endfor %}
-      </select>
-
-      <label>Sort by:</label>
-      <select name="sort_by">
-        {% for a in abilities %}
-          <option value="{{a}}">{{a}}</option>
+          <option value="{{d}}" {% if d == 3 %}selected{% endif %}>{{d}}</option>
         {% endfor %}
       </select>
 
@@ -142,13 +152,14 @@
   </form>
 </div>
 
+<!-- ================= RESULTS ================= -->
 {% if results %}
 <h3>Results</h3>
 
-<!-- Client-side sort dropdown -->
 <div class="row" style="margin-bottom:12px;">
   <label>Sort results by:</label>
   <select id="resultSort">
+    <option value="">(no sorting)</option>
     {% for a in abilities %}
       <option value="{{a}}">{{a}}</option>
     {% endfor %}
@@ -156,30 +167,40 @@
 </div>
 
 {% for depth, items in results.items() %}
-  <div class="card depth-block" data-depth="{{depth}}">
+  <div class="card depth-block">
     <h3>Depth {{ depth }}</h3>
 
     {% for pal, graph, gid in items %}
-      <div class="pal-row" data-ability="{{ pal | attr(abilities[0]) }}">
+      <div class="pal-row"
+           {% for a in abilities %}
+           data-{{a}}="{{ pal | attr(a) }}"
+           {% endfor %}>
+
         <div>
           <b>{{ pal.name }}</b>
-          <span style="color:#666">(unique={{ graph.unique_pal_count() }})</span>
+          <span class="meta">
+            | unique pals = {{ graph.unique_pal_count() }}
+          </span>
+          <span class="ability-value"></span>
         </div>
-        <button onclick="openDialog('{{gid}}')">Visualize</button>
+
+        <button onclick="openDialog('{{ gid }}')">Visualize</button>
       </div>
     {% endfor %}
   </div>
 {% endfor %}
 {% endif %}
 
+<!-- ================= GRAPH DIALOG ================= -->
 <dialog id="dlg">
   <img id="img">
   <br><br>
   <button onclick="dlg.close()">Close</button>
 </dialog>
 
+<!-- ================= JS ================= -->
 <script>
-/* ---------- Pal autocomplete + chips ---------- */
+/* ---------- Autocomplete + chips ---------- */
 const input = document.getElementById("palInput");
 const sugg = document.getElementById("suggestions");
 const chips = document.getElementById("chips");
@@ -223,9 +244,38 @@ function removePal(p) {
   renderChips();
 }
 
-/* ---------- Graph popup ---------- */
+/* ---------- Client-side sorting ---------- */
+const sortSelect = document.getElementById("resultSort");
+
+sortSelect.onchange = () => {
+  const ability = sortSelect.value;
+
+  document.querySelectorAll(".depth-block").forEach(block => {
+    const rows = Array.from(block.querySelectorAll(".pal-row"));
+
+    rows.forEach(r => {
+      const label = r.querySelector(".ability-value");
+      if (!ability) {
+        label.textContent = "";
+      } else {
+        label.textContent = `| ${ability} = ${r.dataset[ability]}`;
+      }
+    });
+
+    if (!ability) return;
+
+    rows.sort((a, b) =>
+      parseInt(b.dataset[ability]) - parseInt(a.dataset[ability])
+    );
+
+    rows.forEach(r => block.appendChild(r));
+  });
+};
+
+/* ---------- Graph dialog ---------- */
 function openDialog(id) {
-  document.getElementById("img").src = "/graph/" + id;
+  const img = document.getElementById("img");
+  img.src = `/graph/${id}?t=${Date.now()}`;
   dlg.showModal();
 }
 </script>
