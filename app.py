@@ -46,6 +46,7 @@ def index():
             GRAPH_STORE[gid] = graph
             results.setdefault(d, []).append((pal, graph, gid))
 
+        results = dict(sorted(results.items(), key=lambda x: x[0]))
     return render_template(
         "index.html",
         pals=PAL_BY_NAME.keys(),

@@ -5,21 +5,17 @@
 
   <style>
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont;
+      font-family: system-ui, -apple-system;
       margin: 40px;
       background: #fafafa;
-      color: #222;
     }
 
-    h2 { margin-bottom: 10px; }
-    h3 { margin-top: 30px; }
-
     .card {
-      background: #fff;
-      border-radius: 8px;
-      padding: 16px;
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
       margin-bottom: 20px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
 
     .row {
@@ -29,11 +25,14 @@
       flex-wrap: wrap;
     }
 
-    button {
-      padding: 6px 12px;
+    input, select, button {
+      padding: 6px 10px;
       border-radius: 6px;
       border: 1px solid #ccc;
-      background: #f4f4f4;
+    }
+
+    button {
+      background: #f5f5f5;
       cursor: pointer;
     }
 
@@ -41,17 +40,29 @@
       background: #eaeaea;
     }
 
-    select, input {
-      padding: 6px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
+    /* ---------- Pal chips ---------- */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background: #eef2ff;
+      border-radius: 20px;
+      margin: 4px 6px 4px 0;
+      font-size: 14px;
     }
 
+    .chip span {
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    /* ---------- Autocomplete ---------- */
     #suggestions {
-      border: 1px solid #ccc;
-      background: white;
-      max-width: 220px;
       position: absolute;
+      background: white;
+      border: 1px solid #ccc;
+      max-width: 220px;
       z-index: 10;
     }
 
@@ -64,16 +75,12 @@
       background: #eee;
     }
 
-    ul {
-      margin: 6px 0;
-      padding-left: 18px;
-    }
-
+    /* ---------- Results ---------- */
     .pal-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 6px 0;
+      padding: 8px 0;
       border-bottom: 1px solid #eee;
     }
 
@@ -82,10 +89,9 @@
     }
 
     dialog {
-      border-radius: 8px;
+      border-radius: 10px;
       padding: 20px;
       border: none;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
     }
 
     dialog img {
@@ -100,14 +106,17 @@
 
 <div class="card">
   <form method="post">
+
     <div class="row">
-      <label><b>Pals:</b></label>
+      <b>Pals:</b>
       <input id="palInput" placeholder="Type Gor..." autocomplete="off">
     </div>
 
     <div id="suggestions"></div>
 
-    <ul id="selected"></ul>
+    <!-- Selected pal chips -->
+    <div id="chips"></div>
+
     <input type="hidden" name="pals" id="palsHidden">
 
     <br>
@@ -129,25 +138,34 @@
 
       <button type="submit">Run Breeding</button>
     </div>
+
   </form>
 </div>
 
 {% if results %}
 <h3>Results</h3>
 
+<!-- Client-side sort dropdown -->
+<div class="row" style="margin-bottom:12px;">
+  <label>Sort results by:</label>
+  <select id="resultSort">
+    {% for a in abilities %}
+      <option value="{{a}}">{{a}}</option>
+    {% endfor %}
+  </select>
+</div>
+
 {% for depth, items in results.items() %}
-  <div class="card">
+  <div class="card depth-block" data-depth="{{depth}}">
     <h3>Depth {{ depth }}</h3>
 
     {% for pal, graph, gid in items %}
-      <div class="pal-row">
+      <div class="pal-row" data-ability="{{ pal | attr(abilities[0]) }}">
         <div>
           <b>{{ pal.name }}</b>
-          <span style="color:#666">
-            (unique={{ graph.unique_pal_count() }})
-          </span>
+          <span style="color:#666">(unique={{ graph.unique_pal_count() }})</span>
         </div>
-        <button onclick="openDialog('{{ gid }}')">Visualize</button>
+        <button onclick="openDialog('{{gid}}')">Visualize</button>
       </div>
     {% endfor %}
   </div>
@@ -161,9 +179,10 @@
 </dialog>
 
 <script>
+/* ---------- Pal autocomplete + chips ---------- */
 const input = document.getElementById("palInput");
 const sugg = document.getElementById("suggestions");
-const sel = document.getElementById("selected");
+const chips = document.getElementById("chips");
 const hidden = document.getElementById("palsHidden");
 
 let selected = [];
@@ -180,7 +199,7 @@ input.oninput = async () => {
     d.textContent = n;
     d.onclick = () => {
       if (!selected.includes(n)) selected.push(n);
-      render();
+      renderChips();
       input.value = "";
       sugg.innerHTML = "";
     };
@@ -188,16 +207,23 @@ input.oninput = async () => {
   });
 };
 
-function render() {
-  sel.innerHTML = "";
+function renderChips() {
+  chips.innerHTML = "";
   selected.forEach(p => {
-    const li = document.createElement("li");
-    li.textContent = p;
-    sel.appendChild(li);
+    const c = document.createElement("div");
+    c.className = "chip";
+    c.innerHTML = `${p} <span onclick="removePal('${p}')">✕</span>`;
+    chips.appendChild(c);
   });
   hidden.value = selected.join(",");
 }
 
+function removePal(p) {
+  selected = selected.filter(x => x !== p);
+  renderChips();
+}
+
+/* ---------- Graph popup ---------- */
 function openDialog(id) {
   document.getElementById("img").src = "/graph/" + id;
   dlg.showModal();
