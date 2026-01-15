@@ -1,8 +1,8 @@
 flask
-gunicorn
 ipykernel
 matplotlib
 networkx
 pandas
 pydantic
 pyarrow
+gunicorn
