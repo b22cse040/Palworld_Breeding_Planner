@@ -145,7 +145,7 @@ if __name__ == "__main__":
 
     results = get_breeding_combinations(
       pals=pals,
-      depth=6
+      depth=4
     )
 
     sorted_results = sort_breeding_results(
