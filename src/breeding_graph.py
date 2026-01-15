@@ -43,7 +43,7 @@ class BreedingGraph:
     def contains(self, pal: Pal) -> bool:
         return pal in self.graph.nodes
 
-    # ---- Flask-friendly visualization ----
+    # Visualize on flask as a png
     def visualize_png(self) -> bytes:
         pos = nx.spring_layout(self.graph, seed=42)
 
