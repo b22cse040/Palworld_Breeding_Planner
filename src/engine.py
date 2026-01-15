@@ -54,7 +54,14 @@ def get_breeding_combinations(
                 if not child:
                     continue
 
-                candidate = BreedingGraph(child)
+                p1_depth = best_graphs[
+                    p1.key].depth() if p1.key in best_graphs else 0
+                p2_depth = best_graphs[
+                    p2.key].depth() if p2.key in best_graphs else 0
+
+                child_depth = max(p1_depth, p2_depth) + 1
+
+                candidate = BreedingGraph(child, depth=child_depth)
                 candidate.add_breeding(p1, p2, child)
 
                 if p1.key in best_graphs:

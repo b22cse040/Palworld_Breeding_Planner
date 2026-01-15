@@ -9,8 +9,9 @@ from src.pals import Pal
 
 
 class BreedingGraph:
-    def __init__(self, root: Pal):
+    def __init__(self, root: Pal, depth: int = 0):
         self.root = root
+        self.depth_value = depth
         self.graph = nx.DiGraph()
         self.graph.add_node(root)
 
@@ -23,19 +24,20 @@ class BreedingGraph:
         self.graph = nx.compose(self.graph, other.graph)
 
     def depth(self) -> int:
-        if not self.graph.edges:
-            return 0
-
-        lengths = []
-        for node in self.graph.nodes:
-            try:
-                lengths.append(
-                    nx.shortest_path_length(self.graph, node, self.root)
-                )
-            except nx.NetworkXNoPath:
-                pass
-
-        return max(lengths, default=0)
+        # if not self.graph.edges:
+        #     return 0
+        #
+        # lengths = []
+        # for node in self.graph.nodes:
+        #     try:
+        #         lengths.append(
+        #             nx.shortest_path_length(self.graph, node, self.root)
+        #         )
+        #     except nx.NetworkXNoPath:
+        #         pass
+        #
+        # return max(lengths, default=0)
+        return self.depth_value
 
     def unique_pal_count(self) -> int:
         return len([n for n in self.graph.nodes if isinstance(n, Pal)])
